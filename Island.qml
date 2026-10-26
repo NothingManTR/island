@@ -424,6 +424,11 @@ Item {
 
   property string menuRoute: "root"
 
+  // A tray app whose own menu the tray view opens straight to (see
+  // TrayList), set by a right click on it in the hover capsules.
+  property var trayMenuFor: null
+  readonly property string hoverMode: settings.hoverStyle ? settings.hoverStyle : settings.hoverCapsules ? "capsules" : settings.hoverExpand ? "expand" : "expand"
+
   function toggleView(name) {
     view = view === name ? "rest" : name
     return view
@@ -559,7 +564,9 @@ Item {
           item: root.closesOnOutsideClick ? outsideArea : window.islandHidden ? null : island
           regions: [
             Region { item: window.revealArmed ? revealStrip : null },
-            Region { item: satellitePill && satellitePill.shown ? satellitePill : null }
+            Region { item: satellitePill && satellitePill.shown ? satellitePill : null },
+            Region { item: hoverCapsules && hoverCapsules.shown ? hoverCapsules.leftGroup : null },
+            Region { item: hoverCapsules && hoverCapsules.shown ? hoverCapsules.rightGroup : null }
           ]
         }
         MouseArea {
@@ -626,6 +633,18 @@ Item {
         }
         IslandShadow { shape: island; offset.y: 14; blur: 48; spread: -4; color: Qt.rgba(0, 0, 0, 0.6) }
 
+        // Hovering the resting island splits the bar's items into capsules
+        // beside it (see HoverCapsules).
+        HoverCapsules {
+          id: hoverCapsules
+          host: root
+          island: island
+          shown: (root.hoverMode === "capsules") && island.capsulesShown && !window.islandHidden
+          anchors.fill: parent
+          // Under the island, so the capsules can start tucked beneath it.
+          z: -1
+        }
+
         NotchEar { shape: island }
         NotchEar { shape: island; mirrored: true }
 
@@ -649,21 +668,50 @@ Item {
           onGlanceHoveredChanged: {
             if (glanceHovered) {
               glanceLeaveTimer.stop()
-              if (root.settings.hoverExpand && island.hasGlanceItems && root.restingFree && !root.downloadPill) island.glanceActive = true
+              if (root.hoverMode === "expand" && island.hasGlanceItems && root.restingFree && !root.downloadPill) island.glanceActive = true
             } else {
               glanceLeaveTimer.restart()
             }
           }
+
+          readonly property bool capsulesHovered: clockHover.hovered || islandPointerHover.hovered || (hoverCapsules && hoverCapsules.hovered)
+          property bool capsulesActive: false
+          Timer {
+            id: capsulesLeaveTimer
+            interval: 180
+            onTriggered: island.capsulesActive = false
+          }
+          // A moment's pause before showing, like macOS's hover reveals, so
+          // passing over the island doesn't flash the capsules.
+          Timer {
+            id: capsulesEnterTimer
+            interval: root.theme.scaled(80)
+            onTriggered: if (root.hoverMode === "capsules" && root.resting) island.capsulesActive = true
+          }
+          onCapsulesHoveredChanged: {
+            if (capsulesHovered) {
+              capsulesLeaveTimer.stop()
+              if (!island.capsulesActive) capsulesEnterTimer.restart()
+            } else {
+              capsulesEnterTimer.stop()
+              capsulesLeaveTimer.restart()
+            }
+          }
+
           Connections {
             target: root
             function onViewChanged() {
               if (root.view !== "rest") {
                 island.glanceActive = false
+                island.capsulesActive = false
                 glanceLeaveTimer.stop()
+                capsulesLeaveTimer.stop()
+                capsulesEnterTimer.stop()
               }
             }
           }
-          readonly property bool isGlanceExpanded: island.glanceActive && root.settings.hoverExpand && island.hasGlanceItems && root.restingFree && !root.downloadPill
+          readonly property bool isGlanceExpanded: island.glanceActive && (root.hoverMode === "expand") && island.hasGlanceItems && root.restingFree && !root.downloadPill
+          readonly property bool capsulesShown: island.capsulesActive && (root.hoverMode === "capsules") && root.resting
           // How much wider than a bare time the chosen clock format is; the
           // resting pill and the pills that keep the clock in the middle grow by it.
           readonly property real clockExtra: Math.max(0, Math.ceil(clockLabel.advanceWidth || clockMetrics.advanceWidth) + 56 - 100)
@@ -687,7 +735,7 @@ Item {
           radius: Math.min(height / 2, root.settings.notch && !root.surfaceOpen ? Math.min(radiusCap, 16) : radiusCap)
           topLeftRadius: root.settings.notch ? 0 : radius
           topRightRadius: root.settings.notch ? 0 : radius
-          readonly property bool lifted: root.view === "rest" && clockHover.hovered && !root.settings.notch && !island.isGlanceExpanded
+          readonly property bool lifted: root.view === "rest" && clockHover.hovered && !root.settings.notch && !island.isGlanceExpanded && !island.capsulesShown
           // Lifts a touch under the pointer and squishes while pressed, then
           // springs back past its size on release, like the iPhone's island.
           // The springs run in hundredths, as they settle to a tenth of a unit.

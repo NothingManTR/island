@@ -74,27 +74,36 @@ ColumnLayout {
     }
     SettingsRow {
       view: page.view
-      icon: "󰁌"
-      iconTint: page.system.blue
-      label: "Expand on hover"
-      detail: "Reveal workspace, battery, weather and media when hovering over the idle pill"
-      SettingsSwitch {
-        view: page.view
-        checked: page.view.settings.hoverExpand
-        onToggled: function(on) { page.view.settings.hoverExpand = on }
-      }
-    }
-    SettingsRow {
-      view: page.view
       icon: "󰌢"
       iconTint: page.system.indigo
       label: "Notch style"
       detail: "Attach the island to the top edge, like a MacBook notch"
-      last: true
       SettingsSwitch {
         view: page.view
         checked: page.view.settings.notch
         onToggled: function(on) { page.view.settings.notch = on }
+      }
+    }
+    SettingsRow {
+      view: page.view
+      icon: "󰁌"
+      iconTint: page.system.blue
+      label: "Hover style"
+      detail: "What happens when hovering over the idle island"
+      last: true
+      SettingsPopUp {
+        view: page.view
+        options: [
+          { label: "󰁌  Expand island (Glance)", short: "Expand", value: "expand" },
+          { label: "󰂚  Flanking capsules", short: "Capsules", value: "capsules" },
+          { label: "󰅖  Disabled", short: "Disabled", value: "none" }
+        ]
+        value: page.view.settings.hoverStyle || (page.view.settings.hoverCapsules ? "capsules" : page.view.settings.hoverExpand ? "expand" : "expand")
+        onPicked: function(v) {
+          page.view.settings.hoverStyle = v
+          page.view.settings.hoverExpand = (v === "expand")
+          page.view.settings.hoverCapsules = (v === "capsules")
+        }
       }
     }
   }
@@ -103,7 +112,7 @@ ColumnLayout {
     id: glanceGroup
     view: page.view
     title: "Glance on hover"
-    visible: page.view.settings.hoverExpand
+    visible: (page.view.settings.hoverStyle || (page.view.settings.hoverCapsules ? "capsules" : "expand")) === "expand"
 
     function iconFor(kind) {
       switch (kind) {
@@ -218,6 +227,89 @@ ColumnLayout {
         view: page.view
         checked: page.view.settings.glanceMediaSatelliteBorder !== false
         onToggled: function(on) { page.view.settings.glanceMediaSatelliteBorder = on }
+      }
+    }
+  }
+
+  SettingsGroup {
+    view: page.view
+    title: "Capsules on hover"
+    visible: (page.view.settings.hoverStyle || (page.view.settings.hoverCapsules ? "capsules" : "expand")) === "capsules"
+    SettingsRow {
+      view: page.view
+      icon: "󰀻"
+      iconTint: page.system.purple
+      label: "Tray apps"
+      detail: "Tray icons and Omarchy updates"
+      SettingsSwitch {
+        view: page.view
+        checked: page.view.settings.capsuleTray !== false
+        onToggled: function(on) { page.view.settings.capsuleTray = on }
+      }
+    }
+    SettingsRow {
+      view: page.view
+      icon: "󰂚"
+      iconTint: page.system.orange
+      label: "Notifications"
+      detail: "How many are in the history"
+      SettingsSwitch {
+        view: page.view
+        checked: page.view.settings.capsuleNotifications !== false
+        onToggled: function(on) { page.view.settings.capsuleNotifications = on }
+      }
+    }
+    SettingsRow {
+      view: page.view
+      icon: "󰒓"
+      iconTint: page.system.gray
+      label: "System"
+      detail: "Bluetooth, network, volume and battery"
+      SettingsSwitch {
+        view: page.view
+        checked: page.view.settings.capsuleSystem !== false
+        onToggled: function(on) { page.view.settings.capsuleSystem = on }
+      }
+    }
+    SettingsRow {
+      view: page.view
+      last: !page.view.host.addons.isEnabled("calendar") && !page.view.host.addons.isEnabled("weather")
+      icon: "󱂬"
+      iconTint: page.system.blue
+      label: "Workspaces"
+      detail: "Tiles to switch between them"
+      SettingsSwitch {
+        view: page.view
+        checked: !!page.view.settings.capsuleWorkspaces
+        onToggled: function(on) { page.view.settings.capsuleWorkspaces = on }
+      }
+    }
+    SettingsRow {
+      view: page.view
+      visible: page.view.host.addons.isEnabled("calendar")
+      last: !page.view.host.addons.isEnabled("weather")
+      icon: "󰃭"
+      iconTint: page.system.red
+      label: "Next event"
+      detail: "When one starts within the hour"
+      SettingsSwitch {
+        view: page.view
+        checked: !!page.view.settings.capsuleEvent
+        onToggled: function(on) { page.view.settings.capsuleEvent = on }
+      }
+    }
+    SettingsRow {
+      view: page.view
+      visible: page.view.host.addons.isEnabled("weather")
+      last: true
+      icon: "󰖐"
+      iconTint: page.system.yellow
+      label: "Weather"
+      detail: "Current conditions and temperature"
+      SettingsSwitch {
+        view: page.view
+        checked: !!page.view.settings.capsuleWeather
+        onToggled: function(on) { page.view.settings.capsuleWeather = on }
       }
     }
   }

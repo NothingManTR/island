@@ -26,13 +26,21 @@ Item {
       property bool clock24h: true
       property bool clockAmPm: false
       property string clockFormat: "time"
-      property bool hoverExpand: true
+      property string hoverStyle: "expand"
+      property bool hoverExpand: hoverStyle === "expand"
+      property bool hoverCapsules: hoverStyle === "capsules"
       property string glanceLeft1: "workspace"
       property string glanceLeft2: "battery"
       property string glanceRight1: "weather"
       property string glanceRight2: "volume"
       property bool glanceMediaSatellite: true
       property bool glanceMediaSatelliteBorder: true
+      property bool capsuleWorkspaces: false
+      property bool capsuleTray: true
+      property bool capsuleSystem: true
+      property bool capsuleEvent: false
+      property bool capsuleWeather: false
+      property bool capsuleNotifications: true
       property bool mediaPill: true
       property bool volumeHud: true
       property bool brightnessHud: true
